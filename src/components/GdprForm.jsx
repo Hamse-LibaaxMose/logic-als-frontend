@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
-import { fetchGdprQuestions } from "../service/ApiFacade";
-
-const RISK_LEVELS = ["low", "middle", "high"];
+import { fetchGd·prQuestions } from "../service/ApiFacade";
+const RISK_LEVELS = [
+  { value: "low", label: "Lav", color: "text-green-600" },
+  { value: "middle", label: "Middel", color: "text-yellow-600" },
+  { value: "high", label: "Høj", color: "text-red-600" }
+];
 
 export default function GdprForm() {
   const customerId = 1; // POC
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchGdprQuestions()
@@ -15,9 +19,9 @@ export default function GdprForm() {
         setQuestions(data);
         setLoading(false);
       })
-      .catch(err => {
-        console.error(err);
-        alert("Kunne ikke hente spørgsmål");
+      .catch(() => {
+        alert("Kunne ikke hente GDPR-spørgsmål");
+        setLoading(false);
       });
   }, []);
 
@@ -34,6 +38,7 @@ export default function GdprForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
 
     const payload = {
       customerId,
@@ -46,39 +51,92 @@ export default function GdprForm() {
       body: JSON.stringify(payload)
     });
 
-    alert("GDPR-vurdering gemt");
+    setSaving(false);
+    alert("GDPR-vurdering gemt ✅");
   };
 
-  if (loading) return <p>Indlæser spørgsmål...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl">
+        Indlæser spørgsmål...
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>GDPR Vurdering</h1>
+    <div className="min-h-screen bg-gray-100 py-10 px-4">
+      <form
+        onSubmit={handleSubmit}
+        className="max-w-4xl mx-auto bg-white shadow-lg rounded-xl p-8 space-y-8"
+      >
+        <h1 className="text-3xl font-bold text-gray-800 text-center">
+          GDPR-vurdering
+        </h1>
 
-      {questions.map(q => (
-        <div key={q.id} style={{ marginBottom: "1rem" }}>
-          <p><strong>{q.question}</strong></p>
+        {questions.map(q => (
+          <div
+            key={q.id}
+            className="border rounded-lg p-6 bg-gray-50 space-y-4"
+          >
+            <p className="font-semibold text-lg text-gray-800">
+              {q.question}
+            </p>
 
-          <select required onChange={e => handleChange(q.id, "likelihood", e.target.value)}>
-            <option value="">Sandsynlighed</option>
-            {RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+            {/* Risiko-vurdering */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {["likelihood", "consequence"].map(type => (
+                <div key={type}>
+                  <p className="font-medium text-gray-700 mb-2">
+                    {type === "likelihood" ? "Sandsynlighed" : "Konsekvens"}
+                  </p>
 
-          <select required onChange={e => handleChange(q.id, "consequence", e.target.value)}>
-            <option value="">Konsekvens</option>
-            {RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+                  <div className="flex gap-4">
+                    {RISK_LEVELS.map(risk => (
+                      <label
+                        key={risk.value}
+                        className={`flex items-center gap-2 cursor-pointer ${risk.color}`}
+                      >
+                        <input
+                          type="radio"
+                          name={`${q.id}-${type}`}
+                          value={risk.value}
+                          required
+                          onChange={() =>
+                            handleChange(q.id, type, risk.value)
+                          }
+                        />
+                        {risk.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
 
-          <br />
+            {/* Kommentar */}
+            <div>
+              <textarea
+                rows="3"
+                placeholder="Kommentar (valgfrit)"
+                className="w-full mt-2 p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
+                onChange={e =>
+                  handleChange(q.id, "comment", e.target.value)
+                }
+              />
+            </div>
+          </div>
+        ))}
 
-          <textarea
-            placeholder="Kommentar"
-            onChange={e => handleChange(q.id, "comment", e.target.value)}
-          />
+        <div className="text-center">
+          <button
+            type="submit"
+            disabled={saving}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg transition disabled:opacity-50"
+          >
+            {saving ? "Gemmer..." : "Gem GDPR-vurdering"}
+          </button>
         </div>
-      ))}
-
-      <button type="submit">Gem</button>
-    </form>
+      </form>
+    </div>
   );
 }
