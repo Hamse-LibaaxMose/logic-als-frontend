@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchGd·prQuestions } from "../service/ApiFacade";
+import { fetchGdprQuestions } from "../service/ApiFacade";
 const RISK_LEVELS = [
   { value: "low", label: "Lav", color: "text-green-600" },
   { value: "middle", label: "Middel", color: "text-yellow-600" },
